@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>격동의 조선 (1800-1900년대 TRPG)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nanum Myeongjo', serif;
+            background-color: #f5f0e1; /* 한지 느낌 배경색 */
+            color: #3a3a3a; /* 기본 글자색 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 상단 정렬 */
+            min-height: 100vh;
+            padding-top: 2rem; /* 상단 여백 */
+            overflow-x: hidden; /* 가로 스크롤 방지 */
+        }
+        .game-container {
+            background-color: #fff;
+            border: 2px solid #8c7b70; /* 짙은 갈색 테두리 */
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #5a4638; /* 고풍스러운 제목 색상 */
+            text-align: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #d3c1b3; /* 연한 구분선 */
+            padding-bottom: 0.5rem;
+        }
+        .button {
+            background-color: #8c7b70; /* 짙은 갈색 버튼 */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button:hover {
+            background-color: #6a594e; /* 호버 시 약간 더 어둡게 */
+        }
+        .button-secondary {
+            background-color: #d3c1b3; /* 연한 갈색 버튼 */
+            color: #3a3a3a;
+        }
+        .button-secondary:hover {
+            background-color: #bcaaa4;
+        }
+        .choice-button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        #event-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #d3c1b3;
+        }
+        .stat-input-group {
+            margin-bottom: 10px;
+        }
+        .stat-input-group label {
+            display: inline-block;
+            width: 80px;
+            font-weight: bold;
+        }
+        .stat-input-group input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #5a4638;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            font-size: 1.1rem;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .character-info-box {
+            background-color: #f9f6f0;
+            border: 1px solid #d3c1b3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .character-info-box h3 {
+            color: #5a4638;
+            font-weight: bold;
+            border-bottom: 1px solid #d3c1b3;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .dice-roll-display {
+            background-color: #e9e2d6;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="header-title">격동의 조선</h1>
+
+        <div id="message-box" class="message-box"></div>
+
+        <div id="difficulty-selection-screen">
+            <h2 class="text-xl font-semibold mb-4 text-center">난이도를 선택하십시오.</h2>
+            <div class="flex justify-center space-x-4">
+                <button class="button" onclick="selectDifficulty('easy')">쉬움</button>
+                <button class="button" onclick="selectDifficulty('normal')">보통</button>
+                <button class="button" onclick="selectDifficulty('hard')">어려움</button>
+            </div>
+            <div class="mt-6 text-center">
+                <button class="button button-secondary" onclick="tryLoadGame()">이전 게임 불러오기</button>
+            </div>
+        </div>
+
+        <div id="character-creation-screen" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">캐릭터 생성</h2>
+            <div class="mb-4">
+                <label for="nationality" class="block font-medium mb-1">국적:</label>
+                <select id="nationality" class="w-full p-2 border rounded-md">
+                    <option value="joseon">조선</option>
+                    <option value="japan">일본</option>
+                    <option value="china">중국</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="status" class="block font-medium mb-1">신분 (조선 기준):</label>
+                <select id="status" class="w-full p-2 border rounded-md">
+                    <option value="yangban">양반</option>
+                    <option value="jungin">중인</option>
+                    <option value="sangmin">상민</option>
+                    <option value="cheonmin">천민</option>
+                </select>
+            </div>
+            <h3 class="text-lg font-semibold mt-6 mb-2">능력치 (총 <span id="total-points">20</span> 포인트 분배)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="stat-input-group">
+                    <label for="stat-strength">힘:</label>
+                    <input type="number" id="stat-strength" value="5" min="1" max="10" onchange="updatePoints()">
+                </div>
+                <div class="stat-input-group">
+                    <label for="stat-dexterity">민첩:</label>
+                    <input type="number" id="stat-dexterity" value="5" min="1" max="10" onchange="updatePoints()">
+                </div>
+                <div class="stat-input-group">
+                    <label for="stat-intelligence">지능:</label>
+                    <input type="number" id="stat-intelligence" value="5" min="1" max="10" onchange="updatePoints()">
+                </div>
+                <div class="stat-input-group">
+                    <label for="stat-charisma">매력:</label>
+                    <input type="number" id="stat-charisma" value="5" min="1" max="10" onchange="updatePoints()">
+                </div>
+            </div>
+            <p class="text-sm mt-2">남은 포인트: <span id="remaining-points">0</span></p>
+            <button class="button mt-6 w-full" onclick="createCharacter()">게임 시작</button>
+        </div>
+
+        <div id="main-game-screen" class="hidden">
+            <div id="event-image-container" class="mb-4">
+                <img id="event-image" src="https://placehold.co/800x300/d3c1b3/5a4638?text=상황+이미지" alt="상황 이미지">
+            </div>
+            <div id="story-text" class="text-lg leading-relaxed mb-6 p-4 bg-gray-50 rounded-md border border-gray-200 min-h-[100px]">
+                </div>
+            <div id="choices-container" class="mb-6">
+                </div>
+            <div id="dice-roll-display" class="dice-roll-display hidden">
+                </div>
+            <div id="character-info-area" class="character-info-box">
+                <h3>내 정보</h3>
+                <p>국적: <span id="info-nationality"></span></p>
+                <p>신분: <span id="info-status"></span></p>
+                <p>힘: <span id="info-strength"></span>, 민첩: <span id="info-dexterity"></span>, 지능: <span id="info-intelligence"></span>, 매력: <span id="info-charisma"></span></p>
+                <p>소지품: <span id="info-inventory"></span></p>
+            </div>
+            <div class="mt-8 flex justify-center space-x-4">
+                <button class="button button-secondary" onclick="saveGame()">게임 저장</button>
+                <button class="button button-secondary" onclick="confirmEndGame()">게임 종료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 게임 데이터 및 상태 변수 ---
+        let gameState = {
+            difficulty: 'normal', // easy, normal, hard
+            character: null,
+            currentEventId: 'start_joseon', // 시작 이벤트 ID
+            eventHistory: [], // 지나온 이벤트 기록 (분기점 관리용)
+            totalStatPoints: 20, // 캐릭터 생성 시 총 능력치 포인트
+        };
+
+        // --- 이미지 데이터 (키워드 기반) ---
+        // 실제 게임에서는 더 많은 이미지를 준비해야 합니다.
+        // Placeholder 이미지를 사용합니다. 실제 이미지 URL로 교체 가능합니다.
+        const imageDatabase = {
+            'default': 'https://placehold.co/800x300/d3c1b3/5a4638?text=이야기+시작',
+            'market': 'https://placehold.co/800x300/c1b3d3/46385a?text=저잣거리+풍경',
+            'palace_gate': 'https://placehold.co/800x300/b3c1d3/38465a?text=궁궐+입구',
+            'scholar_room': 'https://placehold.co/800x300/d3b3c1/5a3846?text=선비의+방',
+            'fight': 'https://placehold.co/800x300/a0a0a0/ffffff?text=격투+상황',
+            'travel_road': 'https://placehold.co/800x300/b3d3c1/385a46?text=길을+떠나다',
+            'village': 'https://placehold.co/800x300/d3c1a3/5a4628?text=작은+마을',
+            'port': 'https://placehold.co/800x300/a3c1d3/28465a?text=항구',
+            'meeting_official': 'https://placehold.co/800x300/c1c1c1/333333?text=관료와+대면',
+        };
+
+        // --- 스토리 이벤트 데이터 ---
+        // 각 이벤트는 id, text(스토리), imageKeyword, choices 배열을 가집니다.
+        // choices는 text(선택지 문구), nextEvent(다음 이벤트 ID), action(실행할 함수) 등을 포함할 수 있습니다.
+        // action은 주사위 굴림, 능력치 변화 등을 처리합니다.
+        const storyEvents = {
+            'start_joseon': {
+                text: (char) => `${char.name} (이)여, 때는 18XX년, 격동의 조선이오. 당신은 ${char.status_kr} 신분으로 한양에 첫 발을 내딛었소. 무엇부터 시작하겠소?`,
+                imageKeyword: 'default',
+                choices: [
+                    { text: '저잣거리로 나가 정보를 얻는다.', nextEvent: 'market_explore' },
+                    { text: '조용히 거처에서 앞날을 계획한다.', nextEvent: 'stay_inn_plan' },
+                ]
+            },
+            'start_japan': {
+                text: (char) => `${char.name}님, 조선에 오신 것을 환영합니다. 일본인으로서 당신의 목적은 무엇입니까?`,
+                imageKeyword: 'port',
+                choices: [
+                    { text: '상업적 기회를 찾는다.', nextEvent: 'jp_merchant_start' },
+                    { text: '조선의 정세를 살핀다.', nextEvent: 'jp_observe_start' },
+                ]
+            },
+            'start_china': {
+                text: (char) => `${char.name}님, 머나먼 길을 오셨습니다. 중국인으로서 조선에서 무엇을 이루고 싶으십니까?`,
+                imageKeyword: 'port',
+                choices: [
+                    { text: '조선과의 교역을 모색한다.', nextEvent: 'cn_trade_start' },
+                    { text: '새로운 삶의 터전을 찾는다.', nextEvent: 'cn_settle_start' },
+                ]
+            },
+            'market_explore': {
+                text: '한양의 저잣거리는 활기가 넘치지만, 어딘가 불안한 기운도 감돈다. 한쪽에서 사람들이 웅성거리고 있다.',
+                imageKeyword: 'market',
+                choices: [
+                    { text: '무슨 일인지 다가가 본다.', nextEvent: 'market_crowd_event', action: () => rollForEventOutcome('market_crowd_event_outcomes', 10) }, // d10 주사위
+                    { text: '관심 없다. 조용히 다른 곳을 둘러본다.', nextEvent: 'market_quiet_look' }
+                ]
+            },
+            'market_crowd_event_outcomes': { // 주사위 결과에 따른 분기
+                success: { text: '다가가보니, 한 상인이 일본 상인과 시비가 붙은 모양이다. 당신의 지혜(지능)로 중재를 시도할 수 있다.', nextEvent: 'market_dispute_mediate' },
+                failure: { text: '웅성거리는 곳에 다가가려다 소매치기를 당할 뻔 했다! 다행히 민첩하게 피했다. (민첩 +1 경험)', nextEvent: 'market_explore', action: () => { gameState.character.stats.dexterity++; showMessage("민첩성이 1 증가했습니다!"); updateCharacterInfo(); } },
+                critical_success: { text: '당신이 다가가자 신기하게도 소동이 잠잠해졌다. 주변 사람들이 당신을 주목한다. (매력 +1 경험)', nextEvent: 'market_explore', action: () => { gameState.character.stats.charisma++; showMessage("매력이 1 증가했습니다!"); updateCharacterInfo(); } },
+                critical_failure: { text: '소동에 휘말려 관아의 포졸에게 오해를 받아 끌려갈 뻔 했다! 간신히 해명하고 풀려났다. 기분이 좋지 않다.', nextEvent: 'stay_inn_plan' }
+            },
+            'market_dispute_mediate': {
+                text: '일본 상인과 조선 상인이 서로 언성을 높이고 있다. 어떻게 중재하겠는가?',
+                imageKeyword: 'market',
+                choices: [
+                    { text: '양쪽의 말을 들어보고 차분히 설득한다. (지능 판정)', nextEvent: 'mediate_result', action: () => attemptSkillCheck('intelligence', 12, 'mediate_success', 'mediate_failure') },
+                    { text: '힘으로 제압하여 조용히 시킨다. (힘 판정)', nextEvent: 'mediate_result', action: () => attemptSkillCheck('strength', 10, 'mediate_force_success', 'mediate_force_failure') },
+                    { text: '자리를 피한다.', nextEvent: 'market_quiet_look' }
+                ]
+            },
+            'mediate_success': {
+                text: '당신의 지혜로운 말솜씨로 두 상인은 화해하고 감사를 표했다. 저잣거리에서 당신의 평판이 조금 올랐다.',
+                imageKeyword: 'market',
+                choices: [{ text: '계속 저잣거리를 둘러본다.', nextEvent: 'market_explore' }]
+            },
+            'mediate_failure': {
+                text: '당신의 중재는 실패했고, 오히려 상황을 악화시켰다. 두 상인은 당신에게 불만을 표출했다.',
+                imageKeyword: 'market',
+                choices: [{ text: '씁쓸하게 자리를 뜬다.', nextEvent: 'market_quiet_look' }]
+            },
+             'mediate_force_success': {
+                text: '당신의 위압적인 태도에 두 상인은 잠시 조용해졌지만, 앙금이 남은 듯 하다.',
+                imageKeyword: 'market',
+                choices: [{ text: '계속 저잣거리를 둘러본다.', nextEvent: 'market_explore' }]
+            },
+            'mediate_force_failure': {
+                text: '힘으로 제압하려 했으나, 오히려 더 큰 싸움으로 번질 뻔 했다. 주변의 시선이 따갑다.',
+                imageKeyword: 'market',
+                choices: [{ text: '서둘러 자리를 피한다.', nextEvent: 'market_quiet_look' }]
+            },
+            'market_quiet_look': {
+                text: '저잣거리의 다른 곳을 둘러보던 중, 한 노인이 당신에게 의미심장한 눈빛을 보낸다.',
+                imageKeyword: 'market',
+                choices: [
+                    { text: '노인에게 말을 건다.', nextEvent: 'old_man_encounter' },
+                    { text: '무시하고 지나간다.', nextEvent: 'stay_inn_plan' }
+                ]
+            },
+            'stay_inn_plan': {
+                text: '거처로 돌아와 생각을 정리한다. 앞으로의 길이 험난할 것 같다. 무엇을 준비해야 할까?',
+                imageKeyword: 'scholar_room',
+                choices: [
+                    { text: '무예를 단련한다. (힘 +1)', nextEvent: 'training_strength', action: () => { gameState.character.stats.strength++; showMessage("힘이 1 증가했습니다!"); updateCharacterInfo(); } },
+                    { text: '책을 읽으며 지식을 쌓는다. (지능 +1)', nextEvent: 'training_intelligence', action: () => { gameState.character.stats.intelligence++; showMessage("지능이 1 증가했습니다!"); updateCharacterInfo(); } },
+                    { text: '잠시 휴식을 취한다.', nextEvent: 'rest_short' }
+                ]
+            },
+            // ... 더 많은 이벤트 추가 ...
+            'old_man_encounter': {
+                text: '노인은 "시대가 영웅을 기다리고 있네..." 라는 알 수 없는 말을 남기고 홀연히 사라졌다. 그의 손에는 작은 쪽지가 들려있었다.',
+                imageKeyword: 'market',
+                choices: [
+                    { text: '쪽지를 확인한다.', nextEvent: 'check_note' },
+                    { text: '무시하고 갈 길을 간다.', nextEvent: 'stay_inn_plan' }
+                ]
+            },
+            'check_note': {
+                text: '쪽지에는 "북촌의 오래된 우물..." 이라고 적혀있다.',
+                imageKeyword: 'scholar_room',
+                choices: [
+                    { text: '북촌으로 향한다.', nextEvent: 'go_to_bukchon_well' },
+                    { text: '위험할 수 있으니, 나중에 가본다.', nextEvent: 'stay_inn_plan' }
+                ]
+            },
+            'go_to_bukchon_well': {
+                text: '북촌의 오래된 우물에 도착했다. 주변은 스산하고, 우물 안에서는 기분 나쁜 바람이 불어온다.',
+                imageKeyword: 'village', // 적절한 이미지 키워드로 변경
+                choices: [
+                    { text: '우물 안을 살펴본다. (민첩 판정)', nextEvent: 'well_investigation_result', action: () => attemptSkillCheck('dexterity', 13, 'well_success', 'well_failure') },
+                    { text: '역시 돌아가는 게 좋겠다.', nextEvent: 'stay_inn_plan' }
+                ]
+            },
+            'well_success': {
+                text: '조심스럽게 우물 안을 살피던 중, 반짝이는 무언가를 발견했다! 오래된 비단 주머니였다. 안에는 약간의 엽전과 작은 옥패가 들어있었다.',
+                imageKeyword: 'village',
+                action: () => { 
+                    if (!gameState.character.inventory.includes('옥패')) {
+                        gameState.character.inventory.push('옥패');
+                        gameState.character.inventory.push('엽전 약간');
+                        showMessage("옥패와 약간의 엽전을 얻었습니다!");
+                        updateCharacterInfo();
+                    }
+                },
+                choices: [{ text: '주변을 더 조사한다.', nextEvent: 'market_explore' }]
+            },
+            'well_failure': {
+                text: '우물 안을 살피다 발을 헛디뎌 넘어질 뻔 했다. 다행히 다치진 않았지만, 아무것도 발견하지 못했다.',
+                imageKeyword: 'village',
+                choices: [{ text: '다른 곳으로 가보자.', nextEvent: 'market_explore' }]
+            },
+            // 일본, 중국 국적 시작 이벤트 (간단히)
+            'jp_merchant_start': {
+                text: '조선에서의 교역을 위해 정보를 수집하기 시작했다. 제물포 항구는 외국 상인들로 붐빈다.',
+                imageKeyword: 'port',
+                choices: [{ text: '항구 주변을 탐색한다.', nextEvent: 'market_explore' }] // 조선의 저잣거리 이벤트로 연결 (예시)
+            },
+            'jp_observe_start': {
+                text: '조선의 정세를 파악하기 위해 한양으로 잠입했다. 사람들의 대화에 귀를 기울인다.',
+                imageKeyword: 'market',
+                choices: [{ text: '정보를 얻을 만한 곳을 찾는다.', nextEvent: 'market_explore' }]
+            },
+            'cn_trade_start': {
+                text: '중국 상인으로서 조선과의 새로운 교역로를 개척하려 한다. 의주의 상인들을 만나본다.',
+                imageKeyword: 'port',
+                choices: [{ text: '의주 시장으로 향한다.', nextEvent: 'market_explore' }]
+            },
+            'cn_settle_start': {
+                text: '전란을 피해 조선으로 온 당신. 새로운 삶을 시작하기 위해 정착할 곳을 찾는다.',
+                imageKeyword: 'village',
+                choices: [{ text: '작은 마을에 도움을 청한다.', nextEvent: 'market_explore' }]
+            },
+            // 게임 종료 관련
+            'game_over_bad': {
+                text: '당신의 여정은 여기서 끝이 났소. 조선의 격동기 속에서 당신의 이름은 잊혀질 것이오.',
+                imageKeyword: 'default',
+                choices: [{ text: '새 게임 시작', nextEvent: 'restart_game' }]
+            },
+            'restart_game': { // 이벤트를 통해 초기화면으로 돌아가도록 처리
+                text: '',
+                action: () => window.location.reload(), // 간단하게 페이지 새로고침으로 초기화
+                choices:[]
+            }
+        };
+
+
+        // --- DOM 요소 가져오기 ---
+        const difficultyScreen = document.getElementById('difficulty-selection-screen');
+        const characterCreationScreen = document.getElementById('character-creation-screen');
+        const mainGameScreen = document.getElementById('main-game-screen');
+
+        const storyTextElement = document.getElementById('story-text');
+        const eventImageElement = document.getElementById('event-image');
+        const choicesContainer = document.getElementById('choices-container');
+        const diceRollDisplay = document.getElementById('dice-roll-display');
+        const messageBox = document.getElementById('message-box');
+
+        // 캐릭터 정보 UI
+        const infoNationality = document.getElementById('info-nationality');
+        const infoStatus = document.getElementById('info-status');
+        const infoStrength = document.getElementById('info-strength');
+        const infoDexterity = document.getElementById('info-dexterity');
+        const infoIntelligence = document.getElementById('info-intelligence');
+        const infoCharisma = document.getElementById('info-charisma');
+        const infoInventory = document.getElementById('info-inventory');
+
+
+        // --- 캐릭터 생성 관련 함수 ---
+        function updatePoints() {
+            const strength = parseInt(document.getElementById('stat-strength').value) || 0;
+            const dexterity = parseInt(document.getElementById('stat-dexterity').value) || 0;
+            const intelligence = parseInt(document.getElementById('stat-intelligence').value) || 0;
+            const charisma = parseInt(document.getElementById('stat-charisma').value) || 0;
+            const usedPoints = strength + dexterity + intelligence + charisma;
+            const remainingPoints = gameState.totalStatPoints - usedPoints;
+            document.getElementById('remaining-points').textContent = remainingPoints;
+
+            // 능력치 총합이 넘거나 음수가 되지 않도록 버튼 비활성화
+            const createButton = characterCreationScreen.querySelector('button');
+            if (remainingPoints < 0 || strength < 1 || dexterity < 1 || intelligence < 1 || charisma < 1) {
+                createButton.disabled = true;
+                createButton.classList.add('opacity-50', 'cursor-not-allowed');
+                 if(remainingPoints < 0) document.getElementById('remaining-points').classList.add('text-red-500');
+            } else {
+                createButton.disabled = false;
+                createButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('remaining-points').classList.remove('text-red-500');
+            }
+        }
+        
+        function getStatusKorean(statusKey) {
+            const statusMap = {
+                'yangban': '양반',
+                'jungin': '중인',
+                'sangmin': '상민',
+                'cheonmin': '천민'
+            };
+            return statusMap[statusKey] || statusKey;
+        }
+
+        function getNationalityKorean(nationalityKey) {
+            const nationalityMap = {
+                'joseon': '조선',
+                'japan': '일본',
+                'china': '중국'
+            };
+            return nationalityMap[nationalityKey] || nationalityKey;
+        }
+
+
+        function createCharacter() {
+            const remainingPoints = parseInt(document.getElementById('remaining-points').textContent);
+            if (remainingPoints !== 0) {
+                showMessage("남은 포인트를 모두 사용해야 합니다.", true);
+                return;
+            }
+
+            const nationality = document.getElementById('nationality').value;
+            const status = document.getElementById('status').value;
+            const strength = parseInt(document.getElementById('stat-strength').value);
+            const dexterity = parseInt(document.getElementById('stat-dexterity').value);
+            const intelligence = parseInt(document.getElementById('stat-intelligence').value);
+            const charisma = parseInt(document.getElementById('stat-charisma').value);
+
+            // 이름은 간단히 국적 + 신분으로 (혹은 랜덤 생성 가능)
+            let characterName = `${getNationalityKorean(nationality)} ${getStatusKorean(status)}`;
+            if (nationality !== 'joseon') { // 조선 외 국적은 신분 대신 다른 호칭 사용 가능
+                 characterName = `${getNationalityKorean(nationality)} 출신`;
+                 // 일본/중국 선택 시 조선의 신분은 내부적으로 참고만 하고, 표시되는 신분은 다르게 할 수 있음
+                 // 여기서는 일단 status 값을 그대로 사용
+            }
+
+
+            gameState.character = {
+                name: characterName,
+                nationality: nationality,
+                nationality_kr: getNationalityKorean(nationality),
+                status: status,
+                status_kr: getStatusKorean(status),
+                stats: { strength, dexterity, intelligence, charisma },
+                inventory: [], // 초기 소지품
+                gold: 10 // 초기 자금 (난이도에 따라 조절 가능)
+            };
+            
+            // 난이도에 따른 초기 자금/능력치 보정
+            if(gameState.difficulty === 'easy') {
+                gameState.character.gold += 10;
+                // 필요시 능력치 보너스 추가
+            } else if (gameState.difficulty === 'hard') {
+                gameState.character.gold = Math.max(0, gameState.character.gold -5);
+                 // 필요시 능력치 페널티 추가
+            }
+
+
+            // 국적에 따른 시작 이벤트 변경
+            if (nationality === 'japan') {
+                gameState.currentEventId = 'start_japan';
+            } else if (nationality === 'china') {
+                gameState.currentEventId = 'start_china';
+            } else {
+                gameState.currentEventId = 'start_joseon';
+            }
+            
+            characterCreationScreen.classList.add('hidden');
+            mainGameScreen.classList.remove('hidden');
+            loadEvent(gameState.currentEventId);
+            updateCharacterInfo();
+            showMessage("캐릭터 생성 완료! 모험을 시작합니다.");
+        }
+
+        // --- 게임 진행 함수 ---
+        function loadEvent(eventId) {
+            const event = storyEvents[eventId];
+            if (!event) {
+                console.error(`Event not found: ${eventId}`);
+                showMessage("오류: 다음 이야기를 불러올 수 없습니다.", true);
+                loadEvent('start_joseon'); // 오류 시 초기 이벤트로
+                return;
+            }
+
+            gameState.currentEventId = eventId;
+            gameState.eventHistory.push(eventId);
+
+            // 스토리 텍스트 처리 (함수 형태면 실행, 아니면 그대로 사용)
+            storyTextElement.innerHTML = typeof event.text === 'function' ? event.text(gameState.character) : event.text;
+            
+            // 이미지 설정
+            const imageKey = event.imageKeyword || 'default';
+            eventImageElement.src = imageDatabase[imageKey] || imageDatabase['default'];
+            eventImageElement.alt = imageKey + " 이미지"; // 접근성
+
+            choicesContainer.innerHTML = ''; // 이전 선택지 초기화
+            event.choices.forEach((choice, index) => {
+                const button = document.createElement('button');
+                button.classList.add('button', 'choice-button');
+                // 선택지 텍스트 처리 (함수 형태면 실행)
+                button.innerHTML = typeof choice.text === 'function' ? choice.text(gameState.character) : choice.text;
+                button.onclick = () => processChoice(choice);
+                choicesContainer.appendChild(button);
+            });
+
+            // 특정 액션이 있다면 실행 (예: 이벤트 로드 시 바로 능력치 변화)
+            if (event.action && typeof event.action === 'function') {
+                event.action();
+            }
+            updateCharacterInfo(); // 캐릭터 정보 항상 최신화
+            diceRollDisplay.classList.add('hidden'); // 새 이벤트 로드 시 주사위 표시 숨김
+        }
+
+        function processChoice(choice) {
+            // 선택지에 따른 액션 실행 (주사위 굴림 등)
+            if (choice.action && typeof choice.action === 'function') {
+                const actionResult = choice.action(); // action이 결과를 반환할 경우 (예: 주사위 결과에 따른 다음 이벤트 결정)
+                if (actionResult && storyEvents[actionResult]) { // action이 직접 다음 이벤트 ID를 반환한 경우
+                    loadEvent(actionResult);
+                    return;
+                }
+            }
+            
+            // 다음 이벤트 로드 (action에서 다음 이벤트가 결정되지 않은 경우)
+            if (choice.nextEvent) {
+                 if (storyEvents[choice.nextEvent]) {
+                    loadEvent(choice.nextEvent);
+                } else if (choice.nextEvent === 'game_over_bad') { // 특별한 종료 이벤트 처리
+                    loadEvent('game_over_bad');
+                } else if (choice.nextEvent === 'restart_game') {
+                    window.location.reload();
+                }
+                else {
+                    console.error(`Next event not found: ${choice.nextEvent} from choice: ${choice.text}`);
+                    showMessage("오류: 이야기의 다음 장으로 넘어갈 수 없습니다.", true);
+                }
+            }
+            // nextEvent가 없는 선택지는 보통 현재 이벤트 내에서 상태 변화만 일으키거나, action에서 모든 것을 처리
+        }
+
+        function updateCharacterInfo() {
+            if (!gameState.character) return;
+            const char = gameState.character;
+            infoNationality.textContent = char.nationality_kr;
+            infoStatus.textContent = char.status_kr;
+            infoStrength.textContent = char.stats.strength;
+            infoDexterity.textContent = char.stats.dexterity;
+            infoIntelligence.textContent = char.stats.intelligence;
+            infoCharisma.textContent = char.stats.charisma;
+            infoInventory.textContent = char.inventory.length > 0 ? char.inventory.join(', ') : '없음';
+        }
+
+        // --- 주사위 및 판정 시스템 ---
+        function rollDice(sides = 6) { // 기본 6면체 주사위
+            return Math.floor(Math.random() * sides) + 1;
+        }
+
+        function rollForEventOutcome(outcomeEventId, diceSides) {
+            const roll = rollDice(diceSides);
+            const outcomes = storyEvents[outcomeEventId];
+            let resultKey = 'failure'; // 기본값
+
+            // 간단한 성공/실패 판정 (예: 10면체 주사위, 6 이상 성공)
+            // 실제 게임에서는 난이도, 캐릭터 능력치 등을 고려해야 함
+            let successThreshold = Math.ceil(diceSides / 2);
+            if (gameState.difficulty === 'easy') successThreshold -=1;
+            if (gameState.difficulty === 'hard') successThreshold +=1;
+
+
+            if (roll === 1 && outcomes.critical_failure) resultKey = 'critical_failure';
+            else if (roll === diceSides && outcomes.critical_success) resultKey = 'critical_success';
+            else if (roll >= successThreshold && outcomes.success) resultKey = 'success';
+            else if (outcomes.failure) resultKey = 'failure';
+            
+            const outcomeDetails = outcomes[resultKey];
+            
+            // 주사위 결과 표시
+            diceRollDisplay.textContent = `주사위(${diceSides}면): ${roll} (결과: ${resultKey.replace('_', ' ')})`;
+            diceRollDisplay.classList.remove('hidden');
+
+            if (outcomeDetails.action) outcomeDetails.action(); // 결과에 따른 액션 실행
+            loadEvent(outcomeDetails.nextEvent); // 결과에 따른 다음 이벤트 로드
+        }
+        
+        function attemptSkillCheck(statName, difficultyCheck, successEvent, failureEvent) {
+            if (!gameState.character) return;
+            const statValue = gameState.character.stats[statName] || 0;
+            const roll = rollDice(20); // 20면체 주사위 사용
+            let totalRoll = roll + Math.floor(statValue / 2 - 2); // 능력치 보정 (예: (능력치/2)-2 )
+
+            // 난이도에 따른 DC 조절
+            let adjustedDC = difficultyCheck;
+            if (gameState.difficulty === 'easy') adjustedDC -= 2;
+            if (gameState.difficulty === 'hard') adjustedDC += 2;
+            adjustedDC = Math.max(1, adjustedDC); // DC는 최소 1
+
+            let resultText = `[${statName}] 판정: 주사위 ${roll} + 보정 ${Math.floor(statValue / 2 - 2)} = 총 ${totalRoll} (목표: ${adjustedDC}) - `;
+
+            if (roll === 1) { // 대실패
+                resultText += "대실패!";
+                diceRollDisplay.textContent = resultText;
+                diceRollDisplay.classList.remove('hidden');
+                if (storyEvents[failureEvent]?.critical_failure_event) {
+                     loadEvent(storyEvents[failureEvent].critical_failure_event);
+                } else {
+                     loadEvent(failureEvent); // 일반 실패 이벤트로
+                }
+            } else if (roll === 20) { // 대성공
+                resultText += "대성공!";
+                diceRollDisplay.textContent = resultText;
+                diceRollDisplay.classList.remove('hidden');
+                 if (storyEvents[successEvent]?.critical_success_event) {
+                     loadEvent(storyEvents[successEvent].critical_success_event);
+                } else {
+                    loadEvent(successEvent); // 일반 성공 이벤트로
+                }
+            } else if (totalRoll >= adjustedDC) {
+                resultText += "성공!";
+                diceRollDisplay.textContent = resultText;
+                diceRollDisplay.classList.remove('hidden');
+                loadEvent(successEvent);
+            } else {
+                resultText += "실패.";
+                diceRollDisplay.textContent = resultText;
+                diceRollDisplay.classList.remove('hidden');
+                loadEvent(failureEvent);
+            }
+        }
+
+
+        // --- 유틸리티 함수 ---
+        function showMessage(msg, isError = false) {
+            messageBox.textContent = msg;
+            messageBox.style.backgroundColor = isError ? '#c0392b' : '#5a4638'; // 에러 시 붉은색
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000); // 3초 후 사라짐
+        }
+
+        // --- 저장 및 불러오기 ---
+        function saveGame() {
+            if (!gameState.character) {
+                showMessage("저장할 게임 데이터가 없습니다.", true);
+                return;
+            }
+            try {
+                localStorage.setItem('joseonTrpgSaveData', JSON.stringify(gameState));
+                showMessage("게임이 저장되었습니다.");
+            } catch (e) {
+                console.error("저장 실패:", e);
+                showMessage("게임 저장에 실패했습니다. 브라우저 설정을 확인해주세요.", true);
+            }
+        }
+
+        function tryLoadGame() {
+            try {
+                const savedData = localStorage.getItem('joseonTrpgSaveData');
+                if (savedData) {
+                    gameState = JSON.parse(savedData);
+                    
+                    // 화면 전환 및 게임 상태 복원
+                    difficultyScreen.classList.add('hidden');
+                    characterCreationScreen.classList.add('hidden');
+                    mainGameScreen.classList.remove('hidden');
+                    
+                    loadEvent(gameState.currentEventId); // 현재 이벤트부터 다시 로드
+                    updateCharacterInfo(); // 캐릭터 정보 UI 업데이트
+                    showMessage("저장된 게임을 불러왔습니다.");
+
+                } else {
+                    showMessage("저장된 게임 데이터가 없습니다. 새 게임을 시작해주세요.");
+                }
+            } catch (e) {
+                console.error("불러오기 실패:", e);
+                showMessage("게임 불러오기에 실패했습니다. 저장 파일이 손상되었을 수 있습니다.", true);
+                localStorage.removeItem('joseonTrpgSaveData'); // 손상된 데이터 삭제
+            }
+        }
+        
+        function confirmEndGame() {
+            if (confirm("정말로 게임을 종료하고 처음으로 돌아가시겠습니까? 저장하지 않은 내용은 사라집니다.")) {
+                window.location.reload();
+            }
+        }
+
+
+        // --- 초기화 ---
+        function selectDifficulty(level) {
+            gameState.difficulty = level;
+            difficultyScreen.classList.add('hidden');
+            characterCreationScreen.classList.remove('hidden');
+            document.getElementById('total-points').textContent = gameState.totalStatPoints; // 초기 포인트 설정
+            updatePoints(); // 초기 포인트 계산
+            showMessage(`난이도 '${level}' 선택됨.`);
+        }
+
+        // 초기 포인트 설정 및 업데이트 함수 호출
+        document.addEventListener('DOMContentLoaded', () => {
+            // 초기 화면에서는 난이도 선택만 보이도록
+            characterCreationScreen.classList.add('hidden');
+            mainGameScreen.classList.add('hidden');
+            updatePoints(); // 캐릭터 생성 화면의 포인트 초기 계산
+        });
+
+    </script>
+</body>
+</html>
