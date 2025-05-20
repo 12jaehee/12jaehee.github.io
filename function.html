@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        // function asum(a, b){
+        // return a+b;
+        // }
+
+        // let a = asum(10,20)
+        // document.write(a);
+
+        function bignum(a, b) {
+            if (a > b)
+                return a;
+            else
+                return b;
+
+            let sum = (num1, mum2) => num1 + num2;
+
+        }
+        // 1부터 5까지 더하기
+        function getsum(n) {
+            let sum = 0
+            for (let i = 1; i <= n; i++) {
+                sum = sum + i
+            }
+            return sum;
+        }
+        document.write("화살표 함수 호출" + sum(10, 20) + "<br>");
+        document.write("getsum 함수 호출" + getsum(10) + "<br>");
+        let b = parseInt(prompt('숫자1'));
+        let c = parseInt(prompt('숫자2'));
+        let d = bignum(a, b);
+        document.write(b + "," + c + "중 큰수는" + d);
+
+        function change() {
+            const test = document.getElementById("test")
+            test.style.backgroundColor = "red";
+        }
+
+
+
+    </script>
+    <h1>안녕하세요</h1>
+    <h1 id="test" onclick="change()"> 대전대 학교 핀테크 강좌입니다.</h1>
+</body>
+
+</html>
